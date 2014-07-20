@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta http-equiv="Content-Style-Type" content="text/css" />
+<meta name="generator" content="pandoc" />
+
+
+
+<title></title>
+
+<script src="PA1_assignment_files/jquery-1.11.0/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link href="PA1_assignment_files/bootstrap-2.3.2/css/bootstrap.min.css" rel="stylesheet" />
+<link href="PA1_assignment_files/bootstrap-2.3.2/css/bootstrap-responsive.min.css" rel="stylesheet" />
+<script src="PA1_assignment_files/bootstrap-2.3.2/js/bootstrap.min.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<link rel="stylesheet"
+      href="PA1_assignment_files/highlight/default.css"
+      type="text/css" />
+<script src="PA1_assignment_files/highlight/highlight.js"></script>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+</style>
+<div class="container-fluid main-container">
+
+
+
+
+<div id="reproducible-research-peer-assessment-1" class="section level1">
+<h1>Reproducible Research: Peer Assessment 1</h1>
+<div id="you-will-need-to-install-knitr-and-lattice-if-not-installed" class="section level2">
+<h2>You will need to install knitr and lattice if not installed</h2>
+<pre class="r"><code>    library(&quot;knitr&quot;)
+    library(&quot;lattice&quot;) 
+    opts_chunk$set( fig.path = &#39;figures/&#39; )</code></pre>
+</div>
+<div id="loading-and-preprocessing-the-data" class="section level2">
+<h2>Loading and preprocessing the data</h2>
+<pre class="r"><code>    activity &lt;- read.csv(&quot;activity.csv&quot;, header=TRUE)</code></pre>
+</div>
+<div id="what-is-mean-total-number-of-steps-taken-per-day" class="section level2">
+<h2>What is mean total number of steps taken per day?</h2>
+<pre class="r"><code># Get the sum of daily steps
+    StepsPerDay &lt;- aggregate(steps~date,data=activity, FUN=sum)
+# plot the histogram
+    hist(StepsPerDay$steps, main=&quot;Total Number of Steps Taken per Day&quot;, xlab=&quot;Steps Taken per Day&quot;)</code></pre>
+<p><img src="figures/meanday.png" alt="plot of chunk meanday" /></p>
+<pre class="r"><code>    stepMean &lt;- mean(StepsPerDay$steps)
+    stepMedian &lt;-median(StepsPerDay$steps)</code></pre>
+<p>The mean number of steps taken per day is 1.0766 × 10<sup>4</sup>. The median number of steps taken per day is 10765.</p>
+</div>
+<div id="what-is-the-average-daily-activity-pattern" class="section level2">
+<h2>What is the average daily activity pattern?</h2>
+<pre class="r"><code>#get mean  by interval
+    pattern &lt;- aggregate(steps~interval,data=activity, FUN=mean) 
+    #plot the mean per interval
+    plot(pattern$interval, pattern$steps,pch=19,
+         main=&quot;Average Number of Steps Taken by Interval&quot;, xlab=&quot;Interval&quot;, 
+         ylab=&quot;Average Steps&quot;, type=&quot;l&quot;)</code></pre>
+<p><img src="figures/dailypattern.png" alt="plot of chunk dailypattern" /></p>
+<pre class="r"><code>    maxSteps &lt;-max(pattern$steps) # Get the max number of steps
+# Get the interval that has the max number of steps
+    maxInterval &lt;- pattern[pattern$steps==maxSteps,1] </code></pre>
+<p>Interval 835 contains the maximum number of steps.</p>
+</div>
+<div id="inputing-missing-values" class="section level2">
+<h2>Inputing missing values</h2>
+<pre class="r"><code>    totalMissing &lt;-sum(is.na(activity$steps))
+
+# Create a vector of based on activity$steps, that replaces NA with the mean number of steps for that of interval
+    filledSteps &lt;- mapply(function(x, y) ifelse(is.na(x),round(with(pattern, subset(steps, interval==y)),digits=0),x), activity$steps,activity$interval)
+
+# Create a new dataset by adding the new column
+    filledActivity &lt;- cbind(activity, filledSteps)
+
+# Now repeat what we did on the base activity with the new
+
+# Get the sum of daily steps
+    FilledStepsPerDay &lt;- aggregate(filledSteps~date,data=filledActivity, FUN=sum)
+# plot the histogram
+    hist(FilledStepsPerDay$filledSteps, main=&quot;Total Number of Steps Taken per Day&quot;, xlab=&quot;Steps Taken per Day&quot;)</code></pre>
+<p><img src="figures/missingvalues.png" alt="plot of chunk missingvalues" /></p>
+<pre class="r"><code>    FilledstepMean &lt;- mean(FilledStepsPerDay$filledSteps)
+    FilledstepMedian &lt;-median(FilledStepsPerDay$filledSteps)</code></pre>
+<p>After filling in the NA values, the mean number of steps is 1.0766 × 10<sup>4</sup> compared to the original 1.0766 × 10<sup>4</sup>. The Median number of steps is 1.0762 × 10<sup>4</sup> compared to the original 10765.</p>
+<p>```</p>
+</div>
+<div id="are-there-differences-in-activity-patterns-between-weekdays-and-weekends" class="section level2">
+<h2>Are there differences in activity patterns between weekdays and weekends?</h2>
+<pre class="r"><code># Use the data with NAs filled in, Add a column thatindicates weekend or weekday
+
+    getWeekend&lt;- function(x) {
+        temp &lt;- weekdays(as.Date(x))
+        ifelse(temp==&quot;Saturday&quot; | temp==&quot;Sunday&quot;, &quot;WeekEnd&quot;, &quot;WeekDay&quot;)
+    }
+
+    filledActivity$dow &lt;- getWeekend(filledActivity$date)
+
+# store averages for intervals for both weekday/end
+     weekMean&lt;-aggregate(steps~interval+dow, data=filledActivity, mean) 
+
+
+# lattice plot
+     xyplot(steps~interval | dow, data=weekMean, main=&quot;Average Steps vs. Interval&quot;, 
+            ylab=&quot;Steps&quot;, xlab=&quot;Interval&quot;, type=&quot;l&quot;, layout=c(1,2))</code></pre>
+<p><img src="figures/weekendvsweekday.png" alt="plot of chunk weekendvsweekday" /></p>
+</div>
+</div>
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+$(document).ready(function () {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+});
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with --self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
